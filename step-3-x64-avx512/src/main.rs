@@ -1,5 +1,7 @@
 // GEMM with scalar, AVX 2, AVX512 and NEON support for f64/f32
 // Written by Rich Neale from mathsDOTearth
+#![cfg_attr(target_arch = "x86_64", feature(avx512_target_feature))]
+#![cfg_attr(target_arch = "x86_64", feature(stdarch_x86_avx512))]
 
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
@@ -25,7 +27,7 @@ pub unsafe trait SimdElem: Copy + Sized {
 }
 
 // x86_64 AVX2 f64
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+#[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f")))]
 unsafe impl SimdElem for f64 {
     type Scalar = f64;
     type Reg = __m256d;
@@ -64,7 +66,7 @@ unsafe impl SimdElem for f64 {
 }
 
 // x86_64 AVX2 f64
-#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+#[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f")))]
 unsafe impl SimdElem for f32 {
     type Scalar = f32;
     type Reg    = __m256;
@@ -496,7 +498,7 @@ fn main() {
     {
         println!("Running With ARM NEON");
     }
-        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
+        #[cfg(all(target_arch = "x86_64", not(target_feature = "avx512f")))]
     {
         println!("Running With x86_64 AVX2");
     }
