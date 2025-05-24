@@ -1,4 +1,4 @@
-// GEMM with scalar and AVX 2 support for f64/f32
+// GEMM with scalar, AVX2 and NEON support for f64/f32
 // Written by Rich Neale from mathsDOTearth
 
 #[cfg(target_arch = "x86_64")]
