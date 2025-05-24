@@ -1,4 +1,4 @@
-// GEMM with scalar and AVX 2 support for f64/f32
+// GEMM with scalar, AVX 2, AVX512 and NEON support for f64/f32
 // Written by Rich Neale from mathsDOTearth
 
 #[cfg(target_arch = "x86_64")]
@@ -25,7 +25,7 @@ pub unsafe trait SimdElem: Copy + Sized {
 }
 
 // x86_64 AVX2 f64
-#[cfg(all(target_arch = "x86_64"))]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 unsafe impl SimdElem for f64 {
     type Scalar = f64;
     type Reg = __m256d;
@@ -64,7 +64,7 @@ unsafe impl SimdElem for f64 {
 }
 
 // x86_64 AVX2 f64
-#[cfg(all(target_arch = "x86_64"))]
+#[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 unsafe impl SimdElem for f32 {
     type Scalar = f32;
     type Reg    = __m256;
@@ -104,6 +104,74 @@ unsafe impl SimdElem for f32 {
             _mm_cvtss_f32(lo)                      // pick the scalar
         }
     } 
+}
+
+// x86_64 AVX512 f64
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+unsafe impl SimdElem for f64 {
+    type Scalar = f64;
+    type Reg    = __m512d;
+    const LANES : usize = 8;
+
+    #[inline(always)]
+    unsafe fn zero() -> __m512d { 
+        unsafe {_mm512_setzero_pd() }
+    }
+
+    #[inline(always)]
+    unsafe fn load(ptr: *const f64) -> __m512d {
+        unsafe { _mm512_loadu_pd(ptr) }
+    }
+
+    #[inline(always)] 
+    unsafe fn store(ptr: *mut f64, v: __m512d) {
+        unsafe { _mm512_storeu_pd(ptr, v) }
+    }
+
+    #[inline(always)] 
+    unsafe fn fmadd(acc: __m512d, a: __m512d, b: __m512d) -> __m512d {
+        unsafe { _mm512_fmadd_pd(a, b, acc) }
+    }
+
+    #[inline(always)] 
+    unsafe fn reduce(v: __m512d) -> f64 {
+        let mut buf = [0f64; 8];
+        unsafe { _mm512_storeu_pd(buf.as_mut_ptr(), v) };
+        buf.iter().copied().sum()
+    }
+}
+
+// x86_64 AVX512 f32
+#[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+unsafe impl SimdElem for f32 {
+    type Scalar = f32;
+    type Reg    = __m512;
+    const LANES : usize = 16;
+
+    #[inline(always)] 
+    unsafe fn zero() -> __m512 { 
+        unsafe { _mm512_setzero_ps() }
+    }
+
+    #[inline(always)] 
+    unsafe fn load(ptr: *const f32) -> __m512 { 
+        unsafe { _mm512_loadu_ps(ptr) }
+    }
+
+    #[inline(always)] 
+    unsafe fn store(ptr: *mut f32, v: __m512) { 
+        unsafe { _mm512_storeu_ps(ptr, v) }
+    }
+
+    #[inline(always)] unsafe fn fmadd(acc: __m512, a: __m512, b: __m512) -> __m512 {
+        unsafe { _mm512_fmadd_ps(a, b, acc) }
+    }
+
+    #[inline(always)] unsafe fn reduce(v: __m512) -> f32 {
+        let mut buf = [0f32; 16];
+        unsafe { _mm512_storeu_ps(buf.as_mut_ptr(), v) };
+        buf.iter().copied().sum()
+    }
 }
 
 // aarch64 NEON f64
@@ -428,9 +496,12 @@ fn main() {
     {
         println!("Running With ARM NEON");
     }
-    #[cfg(target_arch = "x86_64")]
+        #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
     {
         println!("Running With x86_64 AVX2");
     }
-
+    #[cfg(all(target_arch = "x86_64", target_feature = "avx512f"))]
+    {
+        println!("Running With x86_64 AVX512");
+    }
 }
