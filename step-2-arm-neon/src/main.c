@@ -1,7 +1,4 @@
-// GEMM f64/f32 implemented for:
-//  Scalar
-//  AVX2
-//  ARM NEON
+// GEMM with scalar and AVX 2 support for f64/f32
 // Written by Rich Neale from mathsDOTearth
 
 #[cfg(target_arch = "x86_64")]
@@ -28,6 +25,7 @@ pub unsafe trait SimdElem: Copy + Sized {
 }
 
 // x86_64 AVX2 f64
+#[cfg(all(target_arch = "x86_64"))]
 unsafe impl SimdElem for f64 {
     type Scalar = f64;
     type Reg = __m256d;
@@ -66,6 +64,7 @@ unsafe impl SimdElem for f64 {
 }
 
 // x86_64 AVX2 f64
+#[cfg(all(target_arch = "x86_64"))]
 unsafe impl SimdElem for f32 {
     type Scalar = f32;
     type Reg    = __m256;
@@ -105,6 +104,67 @@ unsafe impl SimdElem for f32 {
             _mm_cvtss_f32(lo)                      // pick the scalar
         }
     } 
+}
+
+// aarch64 NEON f64
+#[cfg(target_arch = "aarch64")]
+unsafe impl SimdElem for f64 {
+    type Scalar = f64;
+    type Reg    = float64x2_t;
+    const LANES : usize = 2;
+
+    #[inline(always)]
+    unsafe fn zero() -> float64x2_t { 
+        unsafe {vdupq_n_f64(0.0) }
+    }
+
+    #[inline(always)] 
+    unsafe fn load(ptr: *const f64) -> float64x2_t { 
+        unsafe { vld1q_f64(ptr) }
+    }
+
+    #[inline(always)]
+    unsafe fn store(ptr: *mut f64, v: float64x2_t) { 
+        unsafe { vst1q_f64(ptr, v) }
+    }
+
+    #[inline(always)] unsafe fn fmadd(acc: float64x2_t, a: float64x2_t, b: float64x2_t) -> float64x2_t {
+        unsafe { vfmaq_f64(acc, a, b) }
+    }
+
+    #[inline(always)] unsafe fn reduce(v: float64x2_t) -> f64 {
+        let arr: [f64;2] = unsafe { std::mem::transmute(v) }; 
+        arr[0] + arr[1]
+    }
+}
+
+// aarch64 NEON f32
+#[cfg(target_arch = "aarch64")]
+unsafe impl SimdElem for f32 {
+    type Scalar = f32;
+    type Reg    = float32x4_t;
+    const LANES : usize = 4;
+
+    #[inline(always)]
+    unsafe fn zero() -> float32x4_t { 
+        unsafe { vdupq_n_f32(0.0) }
+    }
+
+    #[inline(always)] unsafe fn load(ptr: *const f32) -> float32x4_t { 
+        unsafe { vld1q_f32(ptr) }
+    }
+
+    #[inline(always)] unsafe fn store(ptr: *mut f32, v: float32x4_t) { 
+        unsafe { vst1q_f32(ptr, v) }
+    }
+
+    #[inline(always)] unsafe fn fmadd(acc: float32x4_t, a: float32x4_t, b: float32x4_t) -> float32x4_t {
+        unsafe { vfmaq_f32(acc, a, b) }
+    }
+    #[inline(always)] unsafe fn reduce(v: float32x4_t) -> f32 {
+        let arr: [f32;4] = unsafe { std::mem::transmute(v) };
+        arr.iter().copied().sum()
+    }
 }
 
 pub unsafe fn dot_generic<E: SimdElem>(a: &[E::Scalar], b: &[E::Scalar]) -> E::Scalar {
@@ -363,5 +423,14 @@ fn main() {
 
     println!(" ");
     println!("Number of Rayon Threads: {}" , current_num_threads());
+
+    #[cfg(target_arch = "aarch64")]
+    {
+        println!("Running With ARM NEON");
+    }
+    #[cfg(target_arch = "x86_64")]
+    {
+        println!("Running With x86_64 AVX2");
+    }
 
 }
