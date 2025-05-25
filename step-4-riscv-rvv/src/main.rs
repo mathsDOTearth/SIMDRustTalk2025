@@ -10,6 +10,8 @@
 use std::arch::x86_64::*;
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
+#[cfg(all(target_arch = "riscv64", target_feature = "v"))]
+use core::arch::asm;
 use rayon::prelude::*;
 use rayon::current_num_threads;
 use num_traits::{Zero, Num};
@@ -27,6 +29,93 @@ pub unsafe trait SimdElem: Copy + Sized {
     unsafe fn store(ptr: *mut Self::Scalar, v: Self::Reg);
     unsafe fn fmadd(acc: Self::Reg, a: Self::Reg, b: Self::Reg) -> Self::Reg;
     unsafe fn reduce(v: Self::Reg) -> Self::Scalar;
+}
+#[cfg(all(target_arch = "riscv64", target_feature = "v"))]
+unsafe impl SimdElem for f64 {
+    type Scalar = f64;
+    /// We assume hardware VLEN=128 ⇒ 128/64 = 2 lanes
+    type Reg    = ();
+    const LANES : usize = 2;
+
+    #[inline(always)]
+    unsafe fn zero() -> Self::Reg {
+        // clear v0
+        asm!("vmv.v.i v0, 0", options(nomem, nostack));
+    }
+
+    #[inline(always)]
+    unsafe fn load(ptr: *const f64) -> Self::Reg {
+        // set VL = 2
+        asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
+        // load contiguous 64-bit elements into v1
+        asm!("vlse64.v v1, ({src}), t0", src = in(reg) ptr);
+    }
+
+    #[inline(always)]
+    unsafe fn store(ptr: *mut f64, _v: Self::Reg) {
+        // set VL = 2
+        asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
+        // store v1 back to memory
+        asm!("vse64.v v1, ({dst})", dst = in(reg) ptr);
+    }
+
+    #[inline(always)]
+    unsafe fn fmadd(_acc: Self::Reg, _a: Self::Reg, _b: Self::Reg) -> Self::Reg {
+        // vfmadd.vv v1, v1, v2   ; v1 += v1 * v2
+        asm!("vfmadd.vv v1, v1, v2", options(nomem, nostack));
+    }
+
+    #[inline(always)]
+    unsafe fn reduce(_v: Self::Reg) -> Self::Scalar {
+        // spill v1 to stack
+        let mut buf = [0f64; Self::LANES];
+        asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
+        asm!("vse64.v v1, ({dst})", dst = in(reg) buf.as_mut_ptr());
+        buf.iter().copied().sum()
+    }
+}
+// See RISC-V Vector intrinsics spec for vsetvl, vlse64, vfmadd, vse64 :contentReference[oaicite:0]{index=0}
+
+// ------------------------------------------------------------------
+// RISC-V RVV 1.0 support (VLEN=128) for f32
+// ------------------------------------------------------------------
+
+#[cfg(all(target_arch = "riscv64", target_feature = "v"))]
+unsafe impl SimdElem for f32 {
+    type Scalar = f32;
+    /// 128/32 = 4 lanes
+    type Reg    = ();
+    const LANES : usize = 4;
+
+    #[inline(always)]
+    unsafe fn zero() -> Self::Reg {
+        asm!("vmv.v.i v0, 0", options(nomem, nostack));
+    }
+
+    #[inline(always)]
+    unsafe fn load(ptr: *const f32) -> Self::Reg {
+        asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
+        asm!("vlse32.v v1, ({src}), t0", src = in(reg) ptr);
+    }
+
+    #[inline(always)]
+    unsafe fn store(ptr: *mut f32, _v: Self::Reg) {
+        asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
+        asm!("vse32.v v1, ({dst})", dst = in(reg) ptr);
+    }
+
+    #[inline(always)]
+    unsafe fn fmadd(_acc: Self::Reg, _a: Self::Reg, _b: Self::Reg) -> Self::Reg {
+        asm!("vfmadd.vv v1, v1, v2", options(nomem, nostack));
+    }
+
+    #[inline(always)]
+    unsafe fn reduce(_v: Self::Reg) -> Self::Scalar {
+        let mut buf = [0f32; Self::LANES];
+        asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
+        asm!("vse32.v v1, ({dst})", dst = in(reg) buf.as_mut_ptr());
+        buf.iter().copied().sum()
+    }
 }
 
 // x86_64 AVX2 f64
