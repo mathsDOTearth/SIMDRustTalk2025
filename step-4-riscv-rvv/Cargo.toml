@@ -1,0 +1,11 @@
+[package]
+name = "step-3-x64-avx512"
+version = "0.1.0"
+edition = "2024"
+authors = ["R Neale mathsDOTearth"]
+license = "CC0 1.0 Universal"
+
+[dependencies]
+unirand = "0.1"
+rayon = "1.7.0"
+num-traits = "0.2"
