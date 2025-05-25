@@ -1,7 +1,10 @@
 // GEMM with scalar, AVX 2, AVX512 and NEON support for f64/f32
 // Written by Rich Neale from mathsDOTearth
-#![cfg_attr(target_arch = "x86_64", feature(avx512_target_feature))]
-#![cfg_attr(target_arch = "x86_64", feature(stdarch_x86_avx512))]
+//
+// Uncomment the following two lins if using a version of
+// rustc prior to 1.87.0 (2025-05-09)
+// #![cfg_attr(target_arch = "x86_64", feature(avx512_target_feature))]
+// #![cfg_attr(target_arch = "x86_64", feature(stdarch_x86_avx512))]
 
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
