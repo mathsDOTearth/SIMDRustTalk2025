@@ -1,0 +1,21 @@
+[package]
+name = "step-5-riscv-c"
+version = "0.2.0"
+edition = "2024"
+authors = ["R Neale mathsDOTearth"]
+description = "A Simple GEMM like function with CPU Vector Optimsation"
+license = "MIT"
+repository = "https://github.com/mathsDOTearth/rust-gemm"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+
+[build-dependencies]
+cc = "1.2.21"
+
+[dependencies]
+unirand = "0.1"
+rayon = "1.7.0"
+num-traits = "0.2"
