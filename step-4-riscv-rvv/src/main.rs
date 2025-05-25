@@ -5,6 +5,7 @@
 // rustc prior to 1.87.0 (2025-05-09)
 // #![cfg_attr(target_arch = "x86_64", feature(avx512_target_feature))]
 // #![cfg_attr(target_arch = "x86_64", feature(stdarch_x86_avx512))]
+#![cfg_attr(target_arch = "riscv64", feature(asm, riscv_target_feature))]
 
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
