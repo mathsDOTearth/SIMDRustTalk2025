@@ -48,7 +48,7 @@ unsafe impl SimdElem for f64 {
     unsafe fn load(ptr: *const f64) -> Self::Reg {
         unsafe { 
         // set VL = 2
-            asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
+            asm!("vsetvli t0, {lanes}, e64,m1", lanes = const Self::LANES);
             // load contiguous 64-bit elements into v1
             asm!("vlse64.v v1, ({src}), t0", src = in(reg) ptr);
         }
@@ -75,7 +75,7 @@ unsafe impl SimdElem for f64 {
         unsafe { 
             // spill v1 to stack
             let mut buf = [0f64; Self::LANES];
-            asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
+            asm!("vsetvli t0, {lanes}, e64,m1", lanes = const Self::LANES);
             asm!("vse64.v v1, ({dst})", dst = in(reg) buf.as_mut_ptr());
             buf.iter().copied().sum()
         }
@@ -102,7 +102,7 @@ unsafe impl SimdElem for f32 {
     #[inline(always)]
     unsafe fn load(ptr: *const f32) -> Self::Reg {
         unsafe { 
-            asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
+            asm!("vsetvli t0, {lanes}, e32,m1", lanes = const Self::LANES);
             asm!("vlse32.v v1, ({src}), t0", src = in(reg) ptr);
         }
     }
@@ -124,7 +124,7 @@ unsafe impl SimdElem for f32 {
     unsafe fn reduce(_v: Self::Reg) -> Self::Scalar {
         unsafe { 
             let mut buf = [0f32; Self::LANES];
-            asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
+            asm!("vsetvli t0, {lanes}, e32,m1", lanes = const Self::LANES);
             asm!("vse32.v v1, ({dst})", dst = in(reg) buf.as_mut_ptr());
             buf.iter().copied().sum()
         }
