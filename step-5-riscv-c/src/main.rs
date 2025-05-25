@@ -10,13 +10,12 @@
 use std::arch::x86_64::*;
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
-use num_traits::{Zero, Num, NumCast};
+use num_traits::{Zero, Num};
 use rayon::prelude::*;
 use rayon::current_num_threads;
 use unirand::MarsagliaUniRng;
 use std::time::Instant;
 use std::iter::Sum;
-use std::iter::repeat_with;
 
 // SIMD abstraction
 pub unsafe trait SimdElem: Copy + Sized {
