@@ -286,7 +286,7 @@ unsafe impl SimdElem for f32 {
 }
 
 // SIMD dot-product for non-RVV targets
-#[cfg(not(target_arch = "riscv64"))]#[cfg(not(target_arch = "riscv64"))]
+#[cfg(not(target_arch = "riscv64"))]
 pub unsafe fn dot_generic<E: SimdElem>(a: &[E::Scalar], b: &[E::Scalar]) -> E::Scalar {
     let mut i = 0; 
     let len = a.len(); 
