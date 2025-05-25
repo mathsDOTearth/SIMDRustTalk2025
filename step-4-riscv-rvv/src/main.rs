@@ -41,38 +41,44 @@ unsafe impl SimdElem for f64 {
     #[inline(always)]
     unsafe fn zero() -> Self::Reg {
         // clear v0
-        asm!("vmv.v.i v0, 0", options(nomem, nostack));
+        unsafe { asm!("vmv.v.i v0, 0", options(nomem, nostack)); }
     }
 
     #[inline(always)]
     unsafe fn load(ptr: *const f64) -> Self::Reg {
+        unsafe { 
         // set VL = 2
-        asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
-        // load contiguous 64-bit elements into v1
-        asm!("vlse64.v v1, ({src}), t0", src = in(reg) ptr);
+            asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
+            // load contiguous 64-bit elements into v1
+            asm!("vlse64.v v1, ({src}), t0", src = in(reg) ptr);
+        }
     }
 
     #[inline(always)]
     unsafe fn store(ptr: *mut f64, _v: Self::Reg) {
+        unsafe { 
         // set VL = 2
-        asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
-        // store v1 back to memory
-        asm!("vse64.v v1, ({dst})", dst = in(reg) ptr);
+            asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
+            // store v1 back to memory
+            asm!("vse64.v v1, ({dst})", dst = in(reg) ptr);
+        }
     }
 
     #[inline(always)]
     unsafe fn fmadd(_acc: Self::Reg, _a: Self::Reg, _b: Self::Reg) -> Self::Reg {
         // vfmadd.vv v1, v1, v2   ; v1 += v1 * v2
-        asm!("vfmadd.vv v1, v1, v2", options(nomem, nostack));
+        unsafe { asm!("vfmadd.vv v1, v1, v2", options(nomem, nostack)); }
     }
 
     #[inline(always)]
     unsafe fn reduce(_v: Self::Reg) -> Self::Scalar {
-        // spill v1 to stack
-        let mut buf = [0f64; Self::LANES];
-        asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
-        asm!("vse64.v v1, ({dst})", dst = in(reg) buf.as_mut_ptr());
-        buf.iter().copied().sum()
+        unsafe { 
+            // spill v1 to stack
+            let mut buf = [0f64; Self::LANES];
+            asm!("vsetvl t0, {lanes}, e64,m1", lanes = const Self::LANES);
+            asm!("vse64.v v1, ({dst})", dst = in(reg) buf.as_mut_ptr());
+            buf.iter().copied().sum()
+        }
     }
 }
 // See RISC-V Vector intrinsics spec for vsetvl, vlse64, vfmadd, vse64 :contentReference[oaicite:0]{index=0}
@@ -90,32 +96,38 @@ unsafe impl SimdElem for f32 {
 
     #[inline(always)]
     unsafe fn zero() -> Self::Reg {
-        asm!("vmv.v.i v0, 0", options(nomem, nostack));
+        unsafe { asm!("vmv.v.i v0, 0", options(nomem, nostack)); }
     }
 
     #[inline(always)]
     unsafe fn load(ptr: *const f32) -> Self::Reg {
-        asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
-        asm!("vlse32.v v1, ({src}), t0", src = in(reg) ptr);
+        unsafe { 
+            asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
+            asm!("vlse32.v v1, ({src}), t0", src = in(reg) ptr);
+        }
     }
 
     #[inline(always)]
     unsafe fn store(ptr: *mut f32, _v: Self::Reg) {
-        asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
-        asm!("vse32.v v1, ({dst})", dst = in(reg) ptr);
+        unsafe { 
+            asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
+            asm!("vse32.v v1, ({dst})", dst = in(reg) ptr);
+        }
     }
 
     #[inline(always)]
     unsafe fn fmadd(_acc: Self::Reg, _a: Self::Reg, _b: Self::Reg) -> Self::Reg {
-        asm!("vfmadd.vv v1, v1, v2", options(nomem, nostack));
+        unsafe { asm!("vfmadd.vv v1, v1, v2", options(nomem, nostack)); }
     }
 
     #[inline(always)]
     unsafe fn reduce(_v: Self::Reg) -> Self::Scalar {
-        let mut buf = [0f32; Self::LANES];
-        asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
-        asm!("vse32.v v1, ({dst})", dst = in(reg) buf.as_mut_ptr());
-        buf.iter().copied().sum()
+        unsafe { 
+            let mut buf = [0f32; Self::LANES];
+            asm!("vsetvl t0, {lanes}, e32,m1", lanes = const Self::LANES);
+            asm!("vse32.v v1, ({dst})", dst = in(reg) buf.as_mut_ptr());
+            buf.iter().copied().sum()
+        }
     }
 }
 
